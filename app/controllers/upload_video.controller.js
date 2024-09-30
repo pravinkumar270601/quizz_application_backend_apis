@@ -40,8 +40,9 @@ exports.uploadVideo = (req, res) => {
     }
 
     if (!req.file) {
-      RESPONSE.Failure.Message = "No file uploaded";
-      return res.status(StatusCode.BAD_REQUEST.code).send(RESPONSE.Failure);
+      RESPONSE.Success.Message = "No file uploaded!";
+      RESPONSE.Success.data = {};
+      return res.status(StatusCode.OK.code).send(RESPONSE.Success);
     }
 
     RESPONSE.Success.Message = "Video uploaded successfully";

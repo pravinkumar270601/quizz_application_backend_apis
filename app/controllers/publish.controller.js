@@ -26,18 +26,26 @@ exports.PublishTableCreate = async (req, res) => {
     };
     // const {staff_id } = req.body;
     if (!data.staff_id) {
-      return res.status(400).send({ message: "staff ID is required" });
+      RESPONSE.Failure.Message = "staff ID is required";
+      return res.status(StatusCode.BAD_REQUEST.code).send(RESPONSE.Failure);
+      // return res.status(400).send({ message: "staff ID is required" });
     }
     if (!data.question_ids || data.question_ids.length === 0) {
-      return res
-        .status(400)
-        .send({ message: "At least one question ID is required" });
+      RESPONSE.Success.Message = "At least one question ID is required";
+      RESPONSE.Success.data = {};
+      return res.status(StatusCode.OK.code).send(RESPONSE.Success);
+      // return res
+      //   .status(400)
+      //   .send({ message: "At least one question ID is required" });
     }
     // Check if the staff exists
     const existingStaff = await Staff.findByPk(data.staff_id);
 
     if (!existingStaff) {
-      return res.status(400).send({ message: "staff does not exist" });
+      RESPONSE.Success.Message = "staff does not exist";
+      RESPONSE.Success.data = {};
+      return res.status(StatusCode.OK.code).send(RESPONSE.Success);
+      // return res.status(400).send({ message: "staff does not exist" });
     }
 
     // Check if all question IDs belong to the same staff
@@ -49,10 +57,14 @@ exports.PublishTableCreate = async (req, res) => {
     });
 
     if (staffQuestions.length !== data.question_ids.length) {
-      return res.status(400).send({
-        message:
-          "One or more question IDs do not belong to the specified staff",
-      });
+      RESPONSE.Failure.Message =
+        "One or more question IDs do not belong to the specified staff";
+      return res.status(StatusCode.BAD_REQUEST.code).send(RESPONSE.Failure);
+
+      // return res.status(400).send({
+      //   message:
+      //     "One or more question IDs do not belong to the specified staff",
+      // });
     }
 
     const response = await PublishTable.create(data);
@@ -99,7 +111,9 @@ exports.getPublishById = async (req, res) => {
       RESPONSE.Success.data = response;
       res.status(StatusCode.CREATED.code).send(RESPONSE.Success);
     } else {
-      res.status(404).send({ message: `Cannot find publish with id=${id}.` });
+      RESPONSE.Failure.Message = `Cannot find publish with id=${id}.`;
+      res.status(StatusCode.NOT_FOUND.code).send(RESPONSE.Failure);
+      // res.status(404).send({ message: `Cannot find publish with id=${id}.` });
     }
   } catch (error) {
     RESPONSE.Failure.Message = error.message;
@@ -119,7 +133,9 @@ exports.getPublishByStaffId = async (req, res) => {
       RESPONSE.Success.data = response;
       res.status(StatusCode.CREATED.code).send(RESPONSE.Success);
     } else {
-      res.status(404).send({ message: `Cannot find publish with id=${id}.` });
+      RESPONSE.Failure.Message = `Cannot find publish with id=${id}.`;
+      res.status(StatusCode.NOT_FOUND.code).send(RESPONSE.Failure);
+      // res.status(404).send({ message: `Cannot find publish with id=${id}.` });
     }
   } catch (error) {
     RESPONSE.Failure.Message = error.message;
@@ -142,7 +158,9 @@ exports.updatepublishById = async (req, res) => {
       RESPONSE.Success.data = {};
       res.status(StatusCode.CREATED.code).send(RESPONSE.Success);
     } else {
-      return res.status(404).json({ error: "publish not found" });
+      RESPONSE.Failure.Message = "publish not found";
+      return res.status(StatusCode.NOT_FOUND.code).send(RESPONSE.Failure);
+      // return res.status(404).json({ error: "publish not found" });
     }
   } catch (error) {
     RESPONSE.Failure.Message = error.message;
@@ -167,9 +185,11 @@ exports.deletepublishById = async (req, res) => {
     if (deleted) {
       RESPONSE.Success.Message = MESSAGE.DELETE;
       RESPONSE.Success.data = {};
-      res.status(200).send(RESPONSE.Success);
+      res.status(StatusCode.OK.code).send(RESPONSE.Success);
     } else {
-      return res.status(404).json({ error: "publish not found" });
+      RESPONSE.Failure.Message = "publish not found";
+      return res.status(StatusCode.NOT_FOUND.code).send(RESPONSE.Failure);
+      // return res.status(404).json({ error: "publish not found" });
     }
   } catch (error) {
     RESPONSE.Failure.Message = error.message;
@@ -233,9 +253,12 @@ exports.grantAccessToStudent = async (req, res) => {
     });
 
     if (!publish) {
-      return res
-        .status(404)
-        .json({ message: "Publish not found or staff ID does not match." });
+      RESPONSE.Failure.Message =
+        "Publish not found or staff ID does not match.";
+      return res.status(StatusCode.NOT_FOUND.code).send(RESPONSE.Failure);
+      // return res
+      //   .status(404)
+      //   .json({ message: "Publish not found or staff ID does not match." });
     }
 
     // Log the current value for debugging
@@ -256,7 +279,7 @@ exports.grantAccessToStudent = async (req, res) => {
       RESPONSE.Success.Message = "Access already granted to this student";
       RESPONSE.Success.data = {};
 
-      return res.status(200).send(RESPONSE.Success);
+      return res.status(StatusCode.OK.code).send(RESPONSE.Success);
       // return res
       //   .status(200)
       //   .json({ message: "Access already granted to this student" });
@@ -283,12 +306,14 @@ exports.grantAccessToStudent = async (req, res) => {
     RESPONSE.Success.Message = "Access granted successfully";
     RESPONSE.Success.data = {};
 
-    res.status(200).send(RESPONSE.Success);
+    res.status(StatusCode.OK.code).send(RESPONSE.Success);
 
     // res.status(200).json({ message: "Access granted successfully" });
   } catch (error) {
     console.error("Error in grantAccessToStudent:", error); // Log the error for debugging
-    res.status(500).json({ message: error.message });
+    RESPONSE.Failure.Message = error.message;
+    res.status(StatusCode.SERVER_ERROR.code).send(RESPONSE.Failure);
+    // res.status(500).json({ message: error.message });
   }
 };
 
@@ -298,9 +323,12 @@ exports.grantAccessToMultiStudent = async (req, res) => {
 
   // Check if the request body is empty or not an array
   if (!Array.isArray(studentsData) || studentsData.length === 0) {
-    return res.status(400).json({
-      message: "Request body must be a non-empty array.",
-    });
+    RESPONSE.Success.Message = "Access must be a non-empty.";
+    RESPONSE.Success.data = {};
+    return res.status(StatusCode.OK.code).send(RESPONSE.Success);
+    // return res.status(400).json({
+    //   message: "Request body must be a non-empty array.",
+    // });
   }
 
   try {
@@ -314,9 +342,12 @@ exports.grantAccessToMultiStudent = async (req, res) => {
       });
 
       if (!publish) {
-        return res
-          .status(404)
-          .json({ message: "Publish not found or staff ID does not match." });
+        RESPONSE.Failure.Message =
+          "Publish not found or staff ID does not match.";
+        return res.status(StatusCode.SERVER_ERROR.code).send(RESPONSE.Failure);
+        // return res
+        //   .status(404)
+        //   .json({ message: "Publish not found or staff ID does not match." });
       }
 
       // Initialize accessGrantedTo
@@ -355,12 +386,14 @@ exports.grantAccessToMultiStudent = async (req, res) => {
     RESPONSE.Success.Message = "Access granted successfully";
     RESPONSE.Success.data = {};
 
-    res.status(200).send(RESPONSE.Success);
+    res.status(StatusCode.OK.code).send(RESPONSE.Success);
 
     // res.status(200).json({ message: "Access granted successfully" });
   } catch (error) {
     console.error("Error in grantAccessToStudent:", error); // Log the error for debugging
-    res.status(500).json({ message: error.message });
+    RESPONSE.Failure.Message = error.message;
+    res.status(StatusCode.SERVER_ERROR.code).send(RESPONSE.Failure);
+    // res.status(500).json({ message: error.message });
   }
 };
 
@@ -375,9 +408,12 @@ exports.revokeAccessToStudent = async (req, res) => {
     });
 
     if (!publish) {
-      return res
-        .status(404)
-        .json({ message: "Publish not found or staff ID does not match." });
+      RESPONSE.Failure.Message =
+        "Publish not found or staff ID does not match.";
+      return res.status(StatusCode.NOT_FOUND.code).send(RESPONSE.Failure);
+      // return res
+      //   .status(404)
+      //   .json({ message: "Publish not found or staff ID does not match." });
     }
 
     // Parse the access_granted_to array
@@ -395,7 +431,7 @@ exports.revokeAccessToStudent = async (req, res) => {
       RESPONSE.Success.Message = "Access not granted to this student";
       RESPONSE.Success.data = {};
 
-      return res.status(200).send(RESPONSE.Success);
+      return res.status(StatusCode.OK.code).send(RESPONSE.Success);
       // return res.status(404).json({ message: "Access not granted to this student." });
     }
 
@@ -416,10 +452,12 @@ exports.revokeAccessToStudent = async (req, res) => {
     RESPONSE.Success.Message = "Access revoked successfully";
     RESPONSE.Success.data = {};
 
-    res.status(200).send(RESPONSE.Success);
+    res.status(StatusCode.OK.code).send(RESPONSE.Success);
   } catch (error) {
     console.error("Error in revokeAccessToStudent:", error); // Log the error for debugging
-    res.status(500).json({ message: error.message });
+    RESPONSE.Failure.Message = error.message;
+    res.status(StatusCode.SERVER_ERROR.code).send(RESPONSE.Failure);
+    // res.status(500).json({ message: error.message });
   }
 };
 
@@ -428,9 +466,12 @@ exports.revokeAccessToMultiStudent = async (req, res) => {
   const studentsData = req.body; // Expecting an array of objects
   // Check if the request body is empty or not an array
   if (!Array.isArray(studentsData) || studentsData.length === 0) {
-    return res.status(400).json({
-      message: "Request body must be a non-empty array.",
-    });
+    RESPONSE.Success.Message = "Access must be a non-empty.";
+    RESPONSE.Success.data = {};
+    return res.status(StatusCode.OK.code).send(RESPONSE.Success);
+    // return res.status(400).json({
+    //   message: "Request body must be a non-empty array.",
+    // });
   }
 
   try {
@@ -444,9 +485,12 @@ exports.revokeAccessToMultiStudent = async (req, res) => {
       });
 
       if (!publish) {
-        return res
-          .status(404)
-          .json({ message: "Publish not found or staff ID does not match." });
+        RESPONSE.Failure.Message =
+          "Publish not found or staff ID does not match.";
+        return res.status(StatusCode.SERVER_ERROR.code).send(RESPONSE.Failure);
+        // return res
+        //   .status(404)
+        //   .json({ message: "Publish not found or staff ID does not match." });
       }
 
       // Parse the access_granted_to array
@@ -484,7 +528,9 @@ exports.revokeAccessToMultiStudent = async (req, res) => {
     res.status(200).send(RESPONSE.Success);
   } catch (error) {
     console.error("Error in revokeAccessToStudent:", error); // Log the error for debugging
-    res.status(500).json({ message: error.message });
+    RESPONSE.Failure.Message = error.message;
+    res.status(StatusCode.SERVER_ERROR.code).send(RESPONSE.Failure);
+    // res.status(500).json({ message: error.message });
   }
 };
 
@@ -508,14 +554,19 @@ exports.getPublishByStudentId = async (req, res) => {
     // 0: Indicates that the value does not exist in the JSON array.
 
     if (publishes.length === 0) {
-      return res
-        .status(200)
-        .json({ message: "No publishes found for this student" });
+      RESPONSE.Success.Message = "No publishes found for this student";
+      RESPONSE.Success.data = {};
+      return res.status(StatusCode.OK.code).send(RESPONSE.Success);
+      // return res
+      //   .status(200)
+      //   .json({ message: "No publishes found for this student" });
     }
 
-    res.status(200).json(publishes);
+    res.status(StatusCode.OK.code).json(publishes);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    RESPONSE.Failure.Message = error.message;
+    res.status(StatusCode.SERVER_ERROR.code).send(RESPONSE.Failure);
+    // res.status(500).json({ message: error.message });
   }
 };
 

@@ -17,9 +17,11 @@ exports.submitStudentScore = async (req, res) => {
     });
 
     if (!studentScore) {
-      return res
-        .status(404)
-        .json({ message: "StudentPublishScore entry not found" });
+      RESPONSE.Failure.Message = "StudentPublishScore entry not found";
+      return res.status(StatusCode.NOT_FOUND.code).send(RESPONSE.Failure);
+      //   return res
+      //     .status(404)
+      //     .json({ message: "StudentPublishScore entry not found" });
     }
 
     // Update the score and status using Sequelize's update method
@@ -28,10 +30,15 @@ exports.submitStudentScore = async (req, res) => {
       { where: { student_id, publish_id } } // Where condition
     );
 
-    res.status(200).json({ message: "Score and status updated successfully" });
+    RESPONSE.Success.Message = '"Score and status updated successfully"';
+    RESPONSE.Success.data = {};
+    res.status(StatusCode.OK.code).send(RESPONSE.Success);
+    // res.status(200).json({ message: "Score and status updated successfully" });
   } catch (error) {
     console.error("Error in submitStudentScore:", error); // Log the error for debugging
-    res.status(500).json({ message: error.message });
+    RESPONSE.Failure.Message = error.message;
+    res.status(StatusCode.SERVER_ERROR.code).send(RESPONSE.Failure);
+    // res.status(500).json({ message: error.message });
   }
 };
 
@@ -89,19 +96,24 @@ exports.getAllPublishesWithStudentScore = async (req, res) => {
     });
 
     if (!publishes || publishes.length === 0) {
-      return res
-        .status(200)
-        .json({ message: "No publishes found for this student." });
+      RESPONSE.Success.Message = "No publishes found for this student.";
+      RESPONSE.Success.data = {};
+      return res.status(StatusCode.OK.code).send(RESPONSE.Success);
+      // return res
+      //   .status(200)
+      //   .json({ message: "No publishes found for this student." });
     }
 
     RESPONSE.Success.Message = MESSAGE.SUCCESS;
     RESPONSE.Success.data = publishes;
-    res.status(200).send(RESPONSE.Success);
+    res.status(StatusCode.OK.code).send(RESPONSE.Success);
 
     // res.status(200).json(publishes);
   } catch (error) {
     console.error("Error in getAllPublishesWithStudentScore:", error);
-    res.status(500).json({ message: error.message });
+    RESPONSE.Failure.Message = error.message;
+    res.status(StatusCode.SERVER_ERROR.code).send(RESPONSE.Failure);
+    // res.status(500).json({ message: error.message });
   }
 };
 
@@ -133,17 +145,22 @@ exports.getStudentReportsForStaff = async (req, res) => {
     });
 
     if (!publishes || publishes.length === 0) {
-      return res
-        .status(200)
-        .json({ message: "No publishes found for this student and staff." });
+      RESPONSE.Success.Message =
+        "No publishes found for this student and staff.";
+      RESPONSE.Success.data = {};
+      return res.status(StatusCode.OK.code).send(RESPONSE.Success);
+      // return res
+      //   .status(200)
+      //   .json({ message: "No publishes found for this student and staff." });
     }
 
     RESPONSE.Success.Message = MESSAGE.SUCCESS;
     RESPONSE.Success.data = publishes;
-    res.status(200).send(RESPONSE.Success);
-
+    res.status(StatusCode.OK.code).send(RESPONSE.Success);
   } catch (error) {
     console.error("Error in getStudentReportsForStaff:", error);
-    res.status(500).json({ message: error.message });
+    RESPONSE.Failure.Message = error.message;
+    res.status(StatusCode.SERVER_ERROR.code).send(RESPONSE.Failure);
+    // res.status(500).json({ message: error.message });
   }
 };

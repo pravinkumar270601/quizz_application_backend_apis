@@ -11,9 +11,11 @@ exports.create = async (req, res) => {
   try {
     // Validate request
     if (!req.body.staff_name || !req.body.email || !req.body.password) {
-      return res.status(400).send({
-        message: "Content can not be empty!",
-      });
+      RESPONSE.Failure.Message = "Content can not be empty!";
+      return res.status(StatusCode.BAD_REQUEST.code).send(RESPONSE.Failure);
+      // return res.status(400).send({
+      //   message: "Content can not be empty!",
+      // });
     }
 
     // Check if the email already exists
@@ -22,9 +24,10 @@ exports.create = async (req, res) => {
     });
 
     if (existingStaff) {
-      RESPONSE.Success.Message = "Email is already in use. Please use a different email.";
+      RESPONSE.Success.Message =
+        "Email is already in use. Please use a different email.";
       RESPONSE.Success.data = {};
-      return res.status(200).send(RESPONSE.Success);
+      return res.status(StatusCode.OK.code).send(RESPONSE.Success);
       // return res.status(200).send({
       //   message: "Email is already in use. Please use a different email.",
       // });
@@ -49,18 +52,21 @@ exports.create = async (req, res) => {
     //   staff_name: data.staff_name,
     //   email: data.email,
     // };
-    RESPONSE.Success.data = data
+    RESPONSE.Success.data = data;
 
-    res.status(201).send(RESPONSE.Success);
+    res.status(StatusCode.CREATED.code).send(RESPONSE.Success);
     // res.status(201).send({
     //   staff_id: data.staff_id,
     //   staff_name: data.staff_name,
     //   email: data.email,
     // });
   } catch (error) {
-    res.status(500).send({
-      message: error.message || "Some error occurred while creating the staff.",
-    });
+    RESPONSE.Failure.Message =
+      error.message || "Some error occurred while creating the staff.";
+    res.status(StatusCode.SERVER_ERROR.code).send(RESPONSE.Failure);
+    // res.status(500).send({
+    //   message: error.message || "Some error occurred while creating the staff.",
+    // });
   }
 };
 
@@ -71,9 +77,11 @@ exports.login = async (req, res) => {
 
     // Validate request
     if (!email || !password) {
-      return res.status(400).send({
-        message: "Email and password are required!",
-      });
+      RESPONSE.Failure.Message = "Email and password are required!";
+      return res.status(StatusCode.BAD_REQUEST.code).send(RESPONSE.Failure);
+      // return res.status(400).send({
+      //   message: "Email and password are required!",
+      // });
     }
 
     // Find staff by email
@@ -82,7 +90,7 @@ exports.login = async (req, res) => {
     if (!staff) {
       RESPONSE.Success.Message = "staff not found!";
       RESPONSE.Success.data = {};
-      return res.status(200).send(RESPONSE.Success);
+      return res.status(StatusCode.OK.code).send(RESPONSE.Success);
       // return res.status(404).send({
       //   message: "staff not found!",
       // });
@@ -94,7 +102,7 @@ exports.login = async (req, res) => {
     if (!isPasswordValid) {
       RESPONSE.Success.Message = "Invalid password!";
       RESPONSE.Success.data = {};
-      return res.status(200).send(RESPONSE.Success);
+      return res.status(StatusCode.OK.code).send(RESPONSE.Success);
       // return res.status(401).send({
       //   message: "Invalid password!",
       // });
@@ -122,7 +130,7 @@ exports.login = async (req, res) => {
         email: staff.email,
       },
     };
-    res.status(201).send(RESPONSE.Success);
+    res.status(StatusCode.CREATED.code).send(RESPONSE.Success);
     // res.status(200).send({
     //   message: "Login successful!",
     //   // staff_id: staff.staff_id,
@@ -132,8 +140,11 @@ exports.login = async (req, res) => {
     //   accesstoken,
     // });
   } catch (error) {
-    res.status(500).send({
-      message: error.message || "Some error occurred while logging in.",
-    });
+    RESPONSE.Failure.Message =
+      error.message || "Some error occurred while logging in.";
+    res.status(StatusCode.SERVER_ERROR.code).send(RESPONSE.Failure);
+    // res.status(500).send({
+    //   message: error.message || "Some error occurred while logging in.",
+    // });
   }
 };

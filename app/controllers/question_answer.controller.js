@@ -66,9 +66,12 @@ exports.getAllQuestionAnswersByPublishId = async (req, res) => {
       RESPONSE.Success.data = response;
       res.status(StatusCode.CREATED.code).send(RESPONSE.Success);
     } else {
-      res
-        .status(404)
-        .send({ message: `No questions found for staff_id=${staff_id}` });
+      RESPONSE.Success.Message = "No questions found for this staff";
+      RESPONSE.Success.data = {};
+      res.status(StatusCode.OK.code).send(RESPONSE.Success);
+      // res
+      //   .status(404)
+      //   .send({ message: `No questions found for staff_id=${staff_id}` });
     }
   } catch (error) {
     RESPONSE.Failure.Message = error.message;
@@ -81,12 +84,16 @@ exports.getQuestionsWithoutPublishByStaffId = async (req, res) => {
   try {
     const staff_id = req.params.staff_id;
     if (!staff_id) {
-      return res.status(400).send({ message: "staff ID is required" });
+      RESPONSE.Failure.Message = "staff ID is required";
+      return res.status(StatusCode.BAD_REQUEST.code).send(RESPONSE.Failure);
+      // return res.status(400).send({ message: "staff ID is required" });
     }
     const existingStaff = await Staff.findByPk(staff_id);
 
     if (!existingStaff) {
-      return res.status(400).send({ message: "staff does not exist" });
+      RESPONSE.Failure.Message = "staff does not exist";
+      return res.status(StatusCode.BAD_REQUEST.code).send(RESPONSE.Failure);
+      // return res.status(400).send({ message: "staff does not exist" });
     }
     const response = await QuestionAnswersTable.findAll({
       where: {
@@ -100,9 +107,9 @@ exports.getQuestionsWithoutPublishByStaffId = async (req, res) => {
       RESPONSE.Success.data = response;
       res.status(StatusCode.OK.code).send(RESPONSE.Success);
     } else {
-      res
-        .status(StatusCode.OK.code)
-        .send({ message: "No questions found without a publish." });
+      RESPONSE.Success.Message = "No questions found without a publish.";
+      RESPONSE.Success.data = {};
+      res.status(StatusCode.OK.code).send(RESPONSE.Success);
     }
   } catch (error) {
     RESPONSE.Failure.Message = error.message;
@@ -122,7 +129,9 @@ exports.getQuestionAnswersById = async (req, res) => {
       RESPONSE.Success.data = response;
       res.status(StatusCode.CREATED.code).send(RESPONSE.Success);
     } else {
-      res.status(404).send({ message: `Cannot find Question with id=${id}.` });
+      RESPONSE.Failure.Message = `Cannot find Question with id=${id}.`;
+      return res.status(StatusCode.NOT_FOUND.code).send(RESPONSE.Failure);
+      // res.status(404).send({ message: `Cannot find Question with id=${id}.` });
     }
   } catch (error) {
     RESPONSE.Failure.Message = error.message;
@@ -145,7 +154,10 @@ exports.updateQuestionAnswersById = async (req, res) => {
       RESPONSE.Success.data = {};
       res.status(StatusCode.CREATED.code).send(RESPONSE.Success);
     } else {
-      return res.status(404).json({ error: "QuestionAnswers not found" });
+      RESPONSE.Failure.Message = "QuestionAnswers not found";
+      return res.status(StatusCode.NOT_FOUND.code).send(RESPONSE.Failure);
+
+      // return res.status(404).json({ error: "QuestionAnswers not found" });
     }
   } catch (error) {
     RESPONSE.Failure.Message = error.message;
@@ -164,9 +176,11 @@ exports.deleteQuestionById = async (req, res) => {
     if (deleted) {
       RESPONSE.Success.Message = MESSAGE.DELETE;
       RESPONSE.Success.data = {};
-      res.status(200).send(RESPONSE.Success);
+      res.status(StatusCode.OK.code).send(RESPONSE.Success);
     } else {
-      return res.status(404).json({ error: "QuestionAnswers not found" });
+      RESPONSE.Failure.Message = "QuestionAnswers not found";
+      return res.status(StatusCode.NOT_FOUND.code).send(RESPONSE.Failure);
+      // return res.status(404).json({ error: "QuestionAnswers not found" });
     }
   } catch (error) {
     RESPONSE.Failure.Message = error.message;
@@ -179,12 +193,17 @@ exports.deleteQuestionsWithoutPublishByStaffId = async (req, res) => {
   try {
     const staff_id = req.params.staff_id;
     if (!staff_id) {
-      return res.status(400).send({ message: "staff ID is required" });
+      RESPONSE.Failure.Message = "staff ID is required";
+      return res.status(StatusCode.BAD_REQUEST.code).send(RESPONSE.Failure);
+      // return res.status(400).send({ message: "staff ID is required" });
     }
     const existingStaff = await Staff.findByPk(staff_id);
 
     if (!existingStaff) {
-      return res.status(400).send({ message: "staff does not exist" });
+      RESPONSE.Success.Message = "staff does not exist";
+      RESPONSE.Success.data = {};
+      return res.status(StatusCode.OK.code).send(RESPONSE.Success);
+      // return res.status(400).send({ message: "staff does not exist" });
     }
     const response = await QuestionAnswersTable.destroy({
       where: {
@@ -198,9 +217,12 @@ exports.deleteQuestionsWithoutPublishByStaffId = async (req, res) => {
       RESPONSE.Success.data = {};
       res.status(StatusCode.OK.code).send(RESPONSE.Success);
     } else {
-      res
-        .status(StatusCode.OK.code)
-        .send({ message: "No questions found without a publish." });
+      RESPONSE.Success.Message = "No questions found without a publish.";
+      RESPONSE.Success.data = {};
+      res.status(StatusCode.OK.code).send(RESPONSE.Success);
+      // res
+      //   .status(StatusCode.OK.code)
+      //   .send({ message: "No questions found without a publish." });
     }
   } catch (error) {
     RESPONSE.Failure.Message = error.message;
