@@ -88,7 +88,9 @@ exports.PublishTableCreate = async (req, res) => {
 
 exports.getAllPublish = async (req, res) => {
   try {
-    const response = await PublishTable.findAll();
+    const response = await PublishTable.findAll({
+      where: { delete_status: 0 }, // Exclude deleted records
+    });
 
     RESPONSE.Success.Message = MESSAGE.SUCCESS;
     RESPONSE.Success.data = response;
@@ -104,7 +106,10 @@ exports.getAllPublish = async (req, res) => {
 exports.getPublishById = async (req, res) => {
   try {
     const id = req.params.publish_id;
-    const response = await PublishTable.findByPk(id);
+    // const response = await PublishTable.findByPk(id);
+    const response = await PublishTable.findOne({
+      where: { publish_id: id, delete_status: 0 }, // Check if active
+    });
 
     if (response) {
       RESPONSE.Success.Message = MESSAGE.SUCCESS;
@@ -126,7 +131,9 @@ exports.getPublishById = async (req, res) => {
 exports.getPublishByStaffId = async (req, res) => {
   try {
     const id = req.params.staff_id;
-    const response = await PublishTable.findAll({ where: { staff_id: id } });
+    const response = await PublishTable.findAll({
+      where: { staff_id: id, delete_status: 0 }, // Exclude deleted records
+    });
 
     if (response) {
       RESPONSE.Success.Message = MESSAGE.SUCCESS;
@@ -174,15 +181,40 @@ exports.deletepublishById = async (req, res) => {
     const id = req.params.id;
 
     // Delete related quiz_question_answer entries
-    await QuestionAnswersTable.destroy({
-      where: { publish_id: id },
-    });
+    // await QuestionAnswersTable.destroy({
+    //   where: { publish_id: id },
+    // });
 
-    const deleted = await PublishTable.destroy({
-      where: { publish_id: id },
+    // const deleted = await PublishTable.destroy({
+    //   where: { publish_id: id },
+    // });
+    const publish = await PublishTable.findOne({
+      where: { publish_id: id, delete_status: 0 }, // Ensure it's not already deleted
     });
+    if (!publish) {
+      RESPONSE.Failure.Message = "Publish not found or already deleted";
+      return res.status(StatusCode.NOT_FOUND.code).send(RESPONSE.Failure);
+    }
 
-    if (deleted) {
+    // Soft delete related quiz_question_answer entries by updating delete_status to 1
+    const relatedEntriesSoftDeleted = await QuestionAnswersTable.update(
+      { delete_status: 1 }, // Mark as soft deleted
+      { where: { publish_id: id, delete_status: 0 } } // Ensure not already deleted
+    );
+
+    // Soft delete the publish entry by updating delete_status to 1
+    const publishSoftDeleted = await PublishTable.update(
+      { delete_status: 1 }, // Soft delete by marking as deleted
+      { where: { publish_id: id } }
+    );
+
+    // if (deleted) {
+    //   RESPONSE.Success.Message = MESSAGE.DELETE;
+    //   RESPONSE.Success.data = {};
+    //   res.status(StatusCode.OK.code).send(RESPONSE.Success);
+    // }
+    if (publishSoftDeleted[0] === 1) {
+      // Check if the update was successful
       RESPONSE.Success.Message = MESSAGE.DELETE;
       RESPONSE.Success.data = {};
       res.status(StatusCode.OK.code).send(RESPONSE.Success);
@@ -540,14 +572,19 @@ exports.getPublishByStudentId = async (req, res) => {
 
   try {
     const publishes = await PublishTable.findAll({
-      where: Sequelize.where(
-        Sequelize.fn(
-          "JSON_CONTAINS",
-          Sequelize.col("access_granted_to"),
-          student_id
-        ),
-        1
-      ),
+      where: {
+        delete_status: 0, // Only fetch active (non-deleted) publishes
+        [Sequelize.Op.and]: [
+          Sequelize.where(
+            Sequelize.fn(
+              "JSON_CONTAINS",
+              Sequelize.col("access_granted_to"),
+              student_id
+            ),
+            1
+          ),
+        ],
+      },
     });
 
     // 1: Indicates that the specified value (in this case, student_id) exists in the JSON array.

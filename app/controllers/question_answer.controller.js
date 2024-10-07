@@ -25,6 +25,7 @@ exports.QuestionAnswerscreate = async (req, res) => {
       questionTiming: req.body.questionTiming,
       staff_id: req.body.staff_id, // Associate with a staff
       // staff_id: req.staff_id, from jwt token header
+      delete_status: 0,
     };
 
     const response = await QuestionAnswersTable.create(data);
@@ -57,8 +58,15 @@ exports.QuestionAnswerscreate = async (req, res) => {
 exports.getAllQuestionAnswersByPublishId = async (req, res) => {
   try {
     const publish_id = req.params.publish_id;
+    if (!publish_id) {
+      RESPONSE.Failure.Message = "Publish ID is required";
+      return res.status(StatusCode.BAD_REQUEST.code).send(RESPONSE.Failure);
+    }
     const response = await QuestionAnswersTable.findAll({
-      where: { publish_id },
+      where: {
+        publish_id,
+        delete_status: 0, // Exclude soft-deleted questions (0 = active)
+      },
     });
 
     if (response.length > 0) {
@@ -99,6 +107,7 @@ exports.getQuestionsWithoutPublishByStaffId = async (req, res) => {
       where: {
         staff_id: staff_id,
         publish_id: null,
+        delete_status: 0, // Exclude soft-deleted questions (0 = active)
       },
     });
 
@@ -169,14 +178,28 @@ exports.updateQuestionAnswersById = async (req, res) => {
 exports.deleteQuestionById = async (req, res) => {
   try {
     const id = req.params.id;
-    const deleted = await QuestionAnswersTable.destroy({
-      where: { question_id: id },
-    });
+    if (!id) {
+      RESPONSE.Failure.Message = "Question ID is required";
+      return res.status(StatusCode.BAD_REQUEST.code).send(RESPONSE.Failure);
+    }
+    // const deleted = await QuestionAnswersTable.destroy({
+    //   where: { question_id: id },
+    // });
+    const response = await QuestionAnswersTable.update(
+      { delete_status: 1 }, // Soft delete by setting delete_status to 1 (1 = deleted)
+      { where: { question_id: id } }
+    );
 
-    if (deleted) {
-      RESPONSE.Success.Message = MESSAGE.DELETE;
+    // if (deleted) {
+    //   RESPONSE.Success.Message = MESSAGE.DELETE;
+    //   RESPONSE.Success.data = {};
+    //   res.status(StatusCode.OK.code).send(RESPONSE.Success);
+    // }
+
+    if (response[0] > 0) {
+      RESPONSE.Success.Message = "Question soft-deleted successfully.";
       RESPONSE.Success.data = {};
-      res.status(StatusCode.OK.code).send(RESPONSE.Success);
+      return res.status(StatusCode.OK.code).send(RESPONSE.Success);
     } else {
       RESPONSE.Failure.Message = "QuestionAnswers not found";
       return res.status(StatusCode.NOT_FOUND.code).send(RESPONSE.Failure);
@@ -205,18 +228,36 @@ exports.deleteQuestionsWithoutPublishByStaffId = async (req, res) => {
       return res.status(StatusCode.OK.code).send(RESPONSE.Success);
       // return res.status(400).send({ message: "staff does not exist" });
     }
-    const response = await QuestionAnswersTable.destroy({
-      where: {
-        staff_id: staff_id,
-        publish_id: null,
-      },
-    });
+    // const response = await QuestionAnswersTable.destroy({
+    //   where: {
+    //     staff_id: staff_id,
+    //     publish_id: null,
+    //   },
+    // });
 
-    if (response > 0) {
-      RESPONSE.Success.Message = `${response} questions deleted successfully.`;
+    // Perform the soft delete by updating the delete_status to 1
+    const response = await QuestionAnswersTable.update(
+      { delete_status: 1 },
+      {
+        where: {
+          staff_id: staff_id,
+          publish_id: null,
+          delete_status: 0, // Only update records that are not already deleted
+        },
+      }
+    );
+
+    // if (response > 0) {
+    //   RESPONSE.Success.Message = `${response} questions deleted successfully.`;
+    //   RESPONSE.Success.data = {};
+    //   res.status(StatusCode.OK.code).send(RESPONSE.Success);
+    // }
+    if (response[0] > 0) {
+      RESPONSE.Success.Message = `${response[0]} questions deleted successfully.`;
       RESPONSE.Success.data = {};
       res.status(StatusCode.OK.code).send(RESPONSE.Success);
-    } else {
+    } 
+    else {
       RESPONSE.Success.Message = "No questions found without a publish.";
       RESPONSE.Success.data = {};
       res.status(StatusCode.OK.code).send(RESPONSE.Success);
@@ -227,5 +268,72 @@ exports.deleteQuestionsWithoutPublishByStaffId = async (req, res) => {
   } catch (error) {
     RESPONSE.Failure.Message = error.message;
     res.status(StatusCode.SERVER_ERROR.code).send(RESPONSE.Failure);
+  }
+};
+
+// Restore a soft-deleted question by ID (set delete_status = 0)
+exports.restoreQuestionById = async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!id) {
+      RESPONSE.Failure.Message = "Question ID is required";
+      return res.status(StatusCode.BAD_REQUEST.code).send(RESPONSE.Failure);
+    }
+
+    const response = await QuestionAnswersTable.update(
+      { delete_status: 0 }, // Restore by setting delete_status to 0 (0 = active)
+      { where: { question_id: id } }
+    );
+
+    if (response[0] > 0) {
+      RESPONSE.Success.Message = "Question restored successfully.";
+      RESPONSE.Success.data = {};
+      return res.status(StatusCode.OK.code).send(RESPONSE.Success);
+    } else {
+      RESPONSE.Failure.Message = "Question not found or already active";
+      return res.status(StatusCode.NOT_FOUND.code).send(RESPONSE.Failure);
+    }
+  } catch (error) {
+    RESPONSE.Failure.Message =
+      error.message || "An error occurred while restoring the question.";
+    return res.status(StatusCode.SERVER_ERROR.code).send(RESPONSE.Failure);
+  }
+};
+
+// Restore multiple soft-deleted questions by an array of IDs (set delete_status = 0)
+exports.restoreQuestionsByIds = async (req, res) => {
+  // {
+  //   "ids": [1, 2, 3, 5]
+  // }
+  try {
+    const { ids } = req.body; // Expecting an array of question IDs in the request body
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      RESPONSE.Failure.Message = "An array of question IDs is required";
+      return res.status(StatusCode.BAD_REQUEST.code).send(RESPONSE.Failure);
+    }
+
+    // Restore the questions by setting delete_status to 0 (active)
+    const response = await QuestionAnswersTable.update(
+      { delete_status: 0 }, // Restore by setting delete_status to 0
+      {
+        where: {
+          question_id: ids, // Use an array of IDs to update all matching questions
+          delete_status: 1, // Only restore if the question is currently deleted
+        },
+      }
+    );
+
+    if (response[0] > 0) {
+      RESPONSE.Success.Message = `${response[0]} questions restored successfully.`;
+      RESPONSE.Success.data = {};
+      return res.status(StatusCode.OK.code).send(RESPONSE.Success);
+    } else {
+      RESPONSE.Failure.Message = "No questions found or they are already active";
+      return res.status(StatusCode.NOT_FOUND.code).send(RESPONSE.Failure);
+    }
+  } catch (error) {
+    RESPONSE.Failure.Message =
+      error.message || "An error occurred while restoring the questions.";
+    return res.status(StatusCode.SERVER_ERROR.code).send(RESPONSE.Failure);
   }
 };

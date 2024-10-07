@@ -125,7 +125,7 @@ exports.getAllStudents = async (req, res) => {
   try {
     // Fetch students with only specific fields
     const students = await Student.findAll({
-      attributes: ["student_id", "student_name", "email"],
+      attributes: ["student_id", "student_name", "email","phone_number"],
     });
 
     if (students.length === 0) {
@@ -188,6 +188,7 @@ exports.getAllStudents = async (req, res) => {
 //     res.status(500).json({ message: error.message });
 //   }
 // };
+
 exports.getStudentsWithAccessByPublishId = async (req, res) => {
   const { publish_id } = req.params;
 

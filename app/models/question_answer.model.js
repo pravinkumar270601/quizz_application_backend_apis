@@ -74,6 +74,12 @@ module.exports = (sequelize, Sequelize) => {
       onDelete: "CASCADE",
       allowNull: false,
     },
+    delete_status: {
+      type: Sequelize.TINYINT,
+      allowNull: false,
+      defaultValue: 0, // Default to 0 (active)
+      comment: "0 = active, 1 = deleted",
+    },
   });
 
   return Question_answer;

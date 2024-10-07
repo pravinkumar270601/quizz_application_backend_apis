@@ -25,6 +25,11 @@ module.exports = (sequelize, Sequelize) => {
         allowNull: false,
         // unique: true, // Ensures no duplicate phone numbers
       },
+      delete_status: {
+        type: Sequelize.TINYINT,
+        allowNull: false,
+        defaultValue: 0, // 0 indicates active, 1 indicates deleted
+      },
     },
     {
       timestamps: true, // Automatically adds createdAt and updatedAt fields

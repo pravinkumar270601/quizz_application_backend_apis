@@ -33,11 +33,11 @@ module.exports = (sequelize, Sequelize) => {
         allowNull: false,
       },
       access_granted_to: {
-      type: Sequelize.JSON, // Store an array of user IDs
-      allowNull: true,
-    },
+        type: Sequelize.JSON, // Store an array of user IDs
+        allowNull: true,
+      },
       question_ids: {
-        type: Sequelize.JSON  ,
+        type: Sequelize.JSON,
         allowNull: false,
       },
       staff_id: {
@@ -49,6 +49,12 @@ module.exports = (sequelize, Sequelize) => {
         onUpdate: "CASCADE",
         onDelete: "CASCADE",
         allowNull: false,
+      },
+      delete_status: {
+        type: Sequelize.TINYINT,
+        allowNull: false,
+        defaultValue: 0, // Default to 0 (active)
+        comment: "0 = active, 1 = deleted", // Add comment for clarity
       },
     },
     {
